@@ -1,151 +1,165 @@
--- Shepherd Simulator - Delta Executor Script
--- Template genérico. Lee las notas al final para personalizar auto-farm y redimir códigos.
+-- Shepherd Simulator - Delta Executor (con ventana de botones)
+-- Salto alto repetitivo, God mode y velocidad ya funcionan.
+-- Farm y Redimir son plantilla (avisa cuando pongamos los nombres reales del juego).
 
--- ============================================================
--- 1. Utilidades
--- ============================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
-local rootPart = character:WaitForChild("HumanRootPart")
-
--- Buscar instancia por nombre (case-insensitive) dentro de un contenedor
-local function findChild(container, name)
-    if not container then return end
-    for _, v in ipairs(container:GetChildren()) do
-        if string.lower(v.Name) == string.lower(name) then
-            return v
-        end
-    end
-    return nil
-end
 
 -- ============================================================
--- 2. Habilidades de personaje (funcionan sin nombres del juego)
+-- Configuracion
 -- ============================================================
 local settings = {
-    godMode     = false,  -- no recibir daño
-    infiniteJump= false,  -- salto infinito
-    speedBoost  = false,  -- velocidad extra
-    speedValue  = 32,     -- velocidad base habitual; sube este número
+    infiniteJump = false,
+    godMode      = false,
+    speedBoost   = false,
+    speedValue   = 40,
 }
 
--- God mode
+-- God mode (no recibe daño)
 RunService.Heartbeat:Connect(function()
     if settings.godMode then
         humanoid.MaxHealth = math.huge
-        humanoid.Health = math.huge
+        humanoid.Health      = math.huge
     end
 end)
 
--- Salto infinito
-humanoid.JumpPower = 100
-local connJump
-connJump = humanoid.StateChanged:Connect(function(_, state)
-    if settings.infiniteJump and state == Enum.HumanoidStateType.Grounded then
-        -- forzar impulso al tocar el suelo
-    end
-end)
-
--- Speed
-local function setSpeed(on)
-    if humanoid then
-        humanoid.WalkSpeed = on and settings.speedValue or 16
-    end
-end
-
--- ============================================================
--- 3. Teleport a una ubicación (coordenadas)
--- ============================================================
-local function teleportTo(x, y, z)
-    if rootPart then
-        rootPart.CFrame = CFrame.new(x, y, z)
-    end
-end
-
--- ============================================================
--- 4. Auto-farm (PERSONALIZAR)
---    Este es el parte que depende del juego. Hay que identificar
---    los RemoteEvents/Nombres reales con la herramienta "Inspect"
---    de Delta (tecla por defecto F9 / botón Inspect Tool).
--- ============================================================
-local autoFarm = {
-    enabled = false,
-    -- Dónde están las "lanas"/recursos (ajustar al nombre real del juego)
-    farmPosition = Vector3.new(0, 5, 0),
-    interval     = 1,   -- segundos entre acciones
-}
-
-local function autoFarmLoop()
-    while autoFarm.enabled do
-        -- TODO: aquí va la acción real. Ejemplos según cómo esté hecho el juego:
-        -- a) Si el juego usa un RemoteEvent para "recoger lana":
-        --    local remote = game.ReplicatedStorage:FindFirstChild("WoolCollect")
-        --    if remote then remote:FireServer() end
-        -- b) Si hay que caminar a un punto y clickear, usa teleportTo + un evento.
-        -- c) Si hay un valor de monedas/lana modificable:
-        --    game.StarterGui... :FindFirstChild("Coins").Value = game...Value + 1
-        task.wait(autoFarm.interval)
-    end
-end
-
-local function toggleAutoFarm()
-    autoFarm.enabled = not autoFarm.enabled
-    if autoFarm.enabled then
-        spawn(autoFarmLoop)   -- o task.spawn(autoFarmLoop)
-    end
-end
-
--- ============================================================
--- 5. Redimir códigos (PERSONALIZAR)
---    Busca un botón "Redeem"/"Codes" y un textbox.
--- ============================================================
-local codes = { "SHEEP2026", "FREEWOOL", "SHEPHERD" }  -- pon tus códigos reales
-
-local function redeemAll()
-    local gui = player.PlayerGui
-    -- Ajusta "Redeem" y "CodeTextbox" a los nombres reales del GUI del juego
-    local redeemBtn = findChild(gui, "Redeem")
-    local codeBox   = findChild(gui, "CodeTextbox")
-    for _, code in ipairs(codes) do
-        if codeBox then
-            codeBox.Text = code
-        end
-        if redeemBtn then
-            -- Si es un Button:
-            if redeemBtn.MouseButton1Click then
-                redeemBtn.MouseButton1Click:Wait()
+-- Salto alto repetitivo (solo cuando toca el suelo)
+local JumpConn
+local function setJump(on)
+    settings.infiniteJump = on
+    if on then
+        humanoid.JumpPower = 200
+        JumpConn = RunService.Heartbeat:Connect(function()
+            if humanoid.Health > 0 and humanoid.FloorMaterial ~= Enum.Material.Null then
+                humanoid:Jump()
             end
-            -- Si es un TextButton con evento FireServer, hay que adaptarlo.
-        end
-        task.wait(0.5)
+        end)
+    elseif JumpConn then
+        JumpConn:Disconnect()
+        JumpConn = nil
     end
 end
 
+-- Velocidad
+local function setSpeed(on)
+    settings.speedBoost = on
+    humanoid.WalkSpeed = on and settings.speedValue or 16
+end
+
 -- ============================================================
--- 6. Activación con teclas (abre la consola del executor)
+-- Crear la ventana (si ya existe, la recrea)
 -- ============================================================
-UserInputService.InputBegan:Connect(function(input, processed)
-    if input.KeyCode == Enum.KeyCode.F1 then
-        settings.godMode = not settings.godMode
-        print("[Shepherd] GodMode: " .. tostring(settings.godMode))
-    elseif input.KeyCode == Enum.KeyCode.F2 then
-        settings.infiniteJump = not settings.infiniteJump
-        print("[Shepherd] InfiniteJump: " .. tostring(settings.infiniteJump))
-    elseif input.KeyCode == Enum.KeyCode.F3 then
-        setSpeed(settings.speedBoost)
-        settings.speedBoost = not settings.speedBoost
-        print("[Shepherd] Speed: " .. tostring(settings.speedBoost))
-    elseif input.KeyCode == Enum.KeyCode.F4 then
-        toggleAutoFarm()
-        print("[Shepherd] AutoFarm: " .. tostring(autoFarm.enabled))
-    elseif input.KeyCode == Enum.KeyCode.F5 then
-        redeemAll()
-        print("[Shepherd] Redeem codes executed")
-    end
+if playerGui:FindFirstChild("ShepherdMenu") then
+    playerGui.ShepherdMenu:Destroy()
+end
+
+local screen = Instance.new("ScreenGui")
+screen.Name = "ShepherdMenu"
+screen.ResetOnSpawn = false
+screen.IgnoreGuiInset = true
+screen.Parent = playerGui
+
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 240, 0, 360)
+main.Position = UDim2.new(0.5, -120, 0.5, -180)
+main.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+main.BorderSizePixel = 0
+main.Parent = screen
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.Parent = main
+
+local title = Instance.new("Label")
+title.Name = "Title"
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+title.Text = "\240Pastor - Menu"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.Parent = main
+local tCorner = Instance.new("UICorner")
+tCorner.Parent = title
+
+local status = Instance.new("Label")
+status.Name = "Status"
+status.Size = UDim2.new(1, -16, 0, 20)
+status.Position = UDim2.new(0, 8, 0, 346)
+status.BackgroundTransparency = 0.6
+status.Text = "Listo."
+status.TextColor3 = Color3.fromRGB(180, 180, 180)
+status.Font = Enum.Font.SourceSans
+status.TextSize = 13
+status.Parent = main
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 6)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
+layout.Parent = title
+
+local function makeButton(text, func)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -16, 0, 36)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 58)
+    btn.TextColor3 = Color3.fromRGB(230, 230, 230)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 16
+    btn.Parent = title
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 9)
+    c.Parent = btn
+    btn.MouseButton1Click:Connect(function()
+        func(btn)
+    end)
+    return btn
+end
+
+local function setStatus(txt)
+    status.Text = txt
+end
+
+-- ============================================================
+-- Botones
+-- ============================================================
+local btnGod = makeButton("God Mode: OFF", function(b)
+    settings.godMode = not settings.godMode
+    b.Text = "God Mode: " .. (settings.godMode and "ON" or "OFF")
+    b.BackgroundColor3 = settings.godMode and Color3.fromRGB(60, 140, 80) or Color3.fromRGB(45, 45, 58)
+    setStatus("God Mode: " .. (settings.godMode and "ON" or "OFF"))
 end)
 
-print("[Shepherd] Script cargado. F1 God, F2 Jump, F3 Speed, F4 Farm, F5 Codes")
+local btnJump = makeButton("Saltar: OFF", function(b)
+    setJump(not settings.infiniteJump)
+    b.Text = "Saltar: " .. (settings.infiniteJump and "ON" or "OFF")
+    b.BackgroundColor3 = settings.infiniteJump and Color3.fromRGB(60, 140, 80) or Color3.fromRGB(45, 45, 58)
+    setStatus("Saltar alto: " .. (settings.infiniteJump and "activado" or "desactivado"))
+end)
+
+local btnSpeed = makeButton("Velocidad: OFF", function(b)
+    setSpeed(not settings.speedBoost)
+    b.Text = "Velocidad: " .. (settings.speedBoost and "ON" or "OFF")
+    b.BackgroundColor3 = settings.speedBoost and Color3.fromRGB(60, 140, 80) or Color3.fromRGB(45, 45, 58)
+    setStatus("Velocidad: " .. (settings.speedBoost and "ON" or "OFF"))
+end)
+
+local btnFarm = makeButton("Farm: OFF", function(b)
+    -- PLANTILLA: aun no sabemos como el juego guarda la lana
+    b.BackgroundColor3 = Color3.fromRGB(120, 90, 30)
+    setStatus("Farm: en prueba (pendiente de nombres del juego)")
+end)
+
+local btnRedeem = makeButton("Redimir", function(b)
+    -- PLANTILLA: redimir codes
+    setStatus("Redimir: en prueba (pendiente de nombres del juego)")
+end)
+
+local btnClose = makeButton("Cerrar", function(b)
+    screen:Destroy()
+    setStatus("Menu cerrado")
+end)
