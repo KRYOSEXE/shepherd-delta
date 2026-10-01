@@ -53,10 +53,11 @@ screen.ResetOnSpawn = false
 screen.IgnoreGuiInset = true
 screen.Parent = playerGui
 
+-- Contenedor principal (fondo oscuro)
 local main = Instance.new("Frame")
 main.Name = "Main"
-main.Size = UDim2.new(0, 220, 0, 300)
-main.Position = UDim2.new(0.5, -110, 1, -320)
+main.Size = UDim2.new(0, 240, 0, 420)
+main.Position = UDim2.new(0.5, -120, 1, -440)
 main.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 main.BorderSizePixel = 0
 main.Parent = screen
@@ -64,9 +65,10 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 16)
 mainCorner.Parent = main
 
+-- Titulo (solo texto, sin hijos)
 local title = Instance.new("Label")
 title.Name = "Title"
-title.Size = UDim2.new(1, 0, 0, 40)
+title.Size = UDim2.new(1, 0, 0, 44)
 title.BackgroundColor3 = Color3.fromRGB(50, 50, 72)
 title.Text = "Pastor Menu"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -78,21 +80,28 @@ tCorner.TopRightCorner = true
 tCorner.BottomLeftCorner = true
 tCorner.Parent = title
 
+-- Contenedor de botones (alto propio, NO recorta)
+local container = Instance.new("Frame")
+container.Name = "Buttons"
+container.Size = UDim2.new(1, -16, 0, 368)
+container.Position = UDim2.new(0, 8, 0, 50)
+container.BackgroundTransparency = 1
+container.Parent = main
 local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 8)
+layout.Padding = UDim.new(0, 10)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
-layout.Parent = title
+layout.Parent = container
 
 local function makeButton(text, func)
     local btn = Instance.new("TextButton")
     btn.Name = "Btn"
-    btn.Size = UDim2.new(1, -20, 0, 46)
+    btn.Size = UDim2.new(1, 0, 0, 50)
     btn.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 17
-    btn.Parent = title
+    btn.Parent = container
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, 12)
     c.Parent = btn
