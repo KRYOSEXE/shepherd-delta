@@ -1,5 +1,5 @@
--- Shepherd Simulator - Delta (movil) -- menu con botones grandes y arrastrable
--- Saltar/God/Velocidad funcionan. Farm y Redhir son plantilla.
+-- Shepherd Simulator - Delta (movil) -- todo hijo directo de la ScreenGui (sin anidar)
+-- Salto/God/Velocidad funcionan. Farm y Redhir son plantilla.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -7,7 +7,6 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
-local main
 
 local settings = { infiniteJump=false, godMode=false, speedBoost=false, speedValue=40 }
 
@@ -41,106 +40,110 @@ local function setSpeed(on)
     humanoid.WalkSpeed = on and settings.speedValue or 16
 end
 
--- ============================================================
--- Crear el menu DESPUES de un pausa (necesario en movil)
--- ============================================================
-task.spawn(function()
-    task.wait(3)   -- dejar estabilizar al juego y al executor
-
-    if playerGui:FindFirstChild("ShepherdMenu") then
-        playerGui.ShepherdMenu:Destroy()
+local function buildMenu()
+    -- destruir menus previos
+    for _, g in ipairs(playerGui:GetChildren()) do
+        if g.Name == "ShepherdMenu" then g:Destroy() end
     end
+    task.wait(1)
 
     local screen = Instance.new("ScreenGui")
     screen.Name = "ShepherdMenu"
     screen.ResetOnSpawn = false
     screen.DestroyOnSpawn = false
     screen.Parent = playerGui
-    task.wait(1)   -- dejar registrar la ScreenGui
+    task.wait(1)
 
-    -- Contenedor principal
-    main = Instance.new("Frame")
-    main.Name = "Main"
-    main.Size = UDim2.new(0, 240, 0, 420)
-    main.Position = UDim2.new(0.5, -120, 1, -440)
-    main.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
-    main.BorderSizePixel = 0
-    main.Parent = screen
-    local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 16)
-    mainCorner.Parent = main
-    task.wait(0.3)
+    -- 1) fondo (crea primero -> detras)
+    local bg = Instance.new("Frame")
+    bg.Name = "Bg"
+    bg.Size = UDim2.new(0, 240, 0, 400)
+    bg.Position = UDim2.new(0.5, -120, 1, -400)
+    bg.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+    bg.BorderSizePixel = 0
+    bg.Parent = screen
+    local bgc = Instance.new("UICorner"); bgc.CornerRadius = UDim.new(0, 16); bgc.Parent = bg
+    task.wait(0.2)
 
-    -- Titulo
+    -- 2) titulo
     local title = Instance.new("Label")
     title.Name = "Title"
-    title.Size = UDim2.new(1, 0, 0, 44)
+    title.Size = UDim2.new(0, 240, 0, 44)
+    title.Position = UDim2.new(0.5, -120, 1, -396)
     title.BackgroundColor3 = Color3.fromRGB(50, 50, 72)
     title.Text = "Pastor Menu"
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Font = Enum.Font.SourceSansBold
     title.TextSize = 18
-    title.Parent = main
-    local tCorner = Instance.new("UICorner")
-    tCorner.TopRightCorner = true
-    tCorner.BottomLeftCorner = true
-    tCorner.Parent = title
-    task.wait(0.3)
+    title.Parent = screen
+    task.wait(0.2)
 
-    -- Contenedor de botones
-    local container = Instance.new("Frame")
-    container.Name = "Buttons"
-    container.Size = UDim2.new(1, -16, 0, 360)
-    container.Position = UDim2.new(0, 8, 0, 50)
-    container.BackgroundTransparency = 1
-    container.Parent = main
-    local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 10)
-    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    layout.VerticalAlignment = Enum.VerticalAlignment.Top
-    layout.Parent = container
-    task.wait(0.3)
-
-    local function makeButton(text, func)
-        local btn = Instance.new("TextButton")
-        btn.Name = "Btn"
-        btn.Size = UDim2.new(1, 0, 0, 50)
-        btn.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.Font = Enum.Font.SourceSansBold
-        btn.TextSize = 17
-        btn.Parent = container
-        local c = Instance.new("UICorner")
-        c.CornerRadius = UDim.new(0, 12)
-        c.Parent = btn
-        btn.MouseButton1Click:Connect(function() func(btn) end)
-        return btn
-    end
+    -- 3) botones (crea ultimo -> delante)
+    local labels = {"God Mode", "Salto alto", "Velocidad", "Farm", "Redimir", "Cerrar"}
+    local positions = {-348, -296, -244, -192, -140, -88}
+    local created = {}
 
     local function setActive(b, on)
         b.BackgroundColor3 = on and Color3.fromRGB(40, 160, 80) or Color3.fromRGB(55, 55, 75)
     end
 
-    makeButton("God Mode", function(b) settings.godMode = not settings.godMode; setActive(b, settings.godMode) end)
-    makeButton("Salto alto", function(b) setJump(not settings.infiniteJump); setActive(b, settings.infiniteJump) end)
-    makeButton("Velocidad", function(b) setSpeed(not settings.speedBoost); setActive(b, settings.speedBoost) end)
-    makeButton("Farm", function(b) setActive(b, true) end)
-    makeButton("Redimir", function(b) setActive(b, true) end)
-    makeButton("Cerrar", function(b) screen:Destroy() end)
+    for i = 1, 6 do
+        local b = Instance.new("TextButton")
+        b.Name = "Btn" .. i
+        b.Text = labels[i]
+        b.Size = UDim2.new(0, 220, 0, 48)
+        b.Position = UDim2.new(0.5, -110, 1, positions[i])
+        b.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
+        b.TextColor3 = Color3.fromRGB(255, 255, 255)
+        b.Font = Enum.Font.SourceSansBold
+        b.TextSize = 17
+        b.Parent = screen
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 12); c.Parent = b
+        created[i] = b
+        task.wait(0.1)
+    end
+
+    created[1].MouseButton1Click:Connect(function()
+        settings.godMode = not settings.godMode; setActive(created[1], settings.godMode)
+    end)
+    created[2].MouseButton1Click:Connect(function()
+        setJump(not settings.infiniteJump); setActive(created[2], settings.infiniteJump)
+    end)
+    created[3].MouseButton1Click:Connect(function()
+        setSpeed(not settings.speedBoost); setActive(created[3], settings.speedBoost)
+    end)
+    created[4].MouseButton1Click:Connect(function() setActive(created[4], true) end)
+    created[5].MouseButton1Click:Connect(function() setActive(created[5], true) end)
+    created[6].MouseButton1Click:Connect(function() screen:Destroy() end)
+
+    -- arrastre: mantén pulsado en el titulo y mueve todo
+    local dragging=false local dragStart=nil
+    local dragEls = {bg, title, created[1], created[2], created[3], created[4], created[5], created[6]}
+    local orig={}
+    for _,e in ipairs(dragEls) do orig[e]=e.Position end
+
+    title.InputBegan:Connect(function(input)
+        if (input.UserInputType == Enum.UserInputType.Touch
+            or input.UserInputType == Enum.UserInputType.MouseButton1) then
+            dragging=true
+            dragStart=input.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging=false end
+            end)
+        end
+    end)
+    RunService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.Touch
+            or input.UserInputType == Enum.UserInputType.MouseButton1) then
+            local delta = input.Position - dragStart
+            for e,o in pairs(orig) do
+                e.Position = UDim2.new(o.X.Scale, o.X.Offset+delta.X, o.Y.Scale, o.Y.Offset+delta.Y)
+            end
+        end
+    end)
 
     print("[Shepherd] Menu mostrado.")
-    task.wait(1)
-end)
+end
 
--- ============================================================
--- Arrastrar con el dedo
--- ============================================================
-local dragging=false local dragInput=nil local dragStart=nil local startPos=nil
-RunService.Heartbeat:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        main.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
+local ok, err = pcall(buildMenu)
+if ok then print("[Shepherd] Menu mostrado.") else print("[Shepherd] ERROR:", err) end
