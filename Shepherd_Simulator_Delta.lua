@@ -1,17 +1,15 @@
--- Shepherd Simulator - Delta Executor (con ventana de botones)
--- Salto alto repetitivo, God mode y velocidad ya funcionan.
--- Farm y Redimir son plantilla (avisa cuando pongamos los nombres reales del juego).
+-- Shepherd Simulator - Delta (menu para MOVIL)
+-- Panel arrastrable, botones grandes. Saltar/God/Velocidad funcionan.
+-- Farm y Redimir son plantilla (pendiente de nombres reales del juego).
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 
--- ============================================================
--- Configuracion
--- ============================================================
 local settings = {
     infiniteJump = false,
     godMode      = false,
@@ -19,7 +17,7 @@ local settings = {
     speedValue   = 40,
 }
 
--- God mode (no recibe daño)
+-- God mode
 RunService.Heartbeat:Connect(function()
     if settings.godMode then
         humanoid.MaxHealth = math.huge
@@ -27,7 +25,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Salto alto repetitivo (solo cuando toca el suelo)
+-- Salto alto repetitivo
 local JumpConn
 local function setJump(on)
     settings.infiniteJump = on
@@ -44,14 +42,13 @@ local function setJump(on)
     end
 end
 
--- Velocidad
 local function setSpeed(on)
     settings.speedBoost = on
     humanoid.WalkSpeed = on and settings.speedValue or 16
 end
 
 -- ============================================================
--- Crear la ventana (si ya existe, la recrea)
+-- Crear menu (si ya existe, lo recrea)
 -- ============================================================
 if playerGui:FindFirstChild("ShepherdMenu") then
     playerGui.ShepherdMenu:Destroy()
@@ -65,54 +62,55 @@ screen.Parent = playerGui
 
 local main = Instance.new("Frame")
 main.Name = "Main"
-main.Size = UDim2.new(0, 240, 0, 360)
-main.Position = UDim2.new(0.5, -120, 0.5, -180)
-main.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+main.Size = UDim2.new(0, 220, 0, 300)
+main.Position = UDim2.new(0.5, 0, 1, -320)   -- abajo, centrado
+main.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 main.BorderSizePixel = 0
 main.Parent = screen
 local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.CornerRadius = UDim.new(0, 16)
 mainCorner.Parent = main
 
-local title = Instance.new("Label")
-title.Name = "Title"
-title.Size = UDim2.new(1, 0, 0, 40)
-title.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-title.Text = "\240Pastor - Menu"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 18
-title.Parent = main
-local tCorner = Instance.new("UICorner")
-tCorner.Parent = title
+-- Borde sutil
+local border = Instance.new("UIStroke")
+border.Color = Color3.fromRGB(80, 80, 110)
+border.Thickness = 2
+border.Parent = main
 
-local status = Instance.new("Label")
-status.Name = "Status"
-status.Size = UDim2.new(1, -16, 0, 20)
-status.Position = UDim2.new(0, 8, 0, 346)
-status.BackgroundTransparency = 0.6
-status.Text = "Listo."
-status.TextColor3 = Color3.fromRGB(180, 180, 180)
-status.Font = Enum.Font.SourceSans
-status.TextSize = 13
-status.Parent = main
+-- Cabecera (asa para arrastrar)
+local header = Instance.new("TextLabel")
+header.Name = "Header"
+header.Size = UDim2.new(1, 0, 0, 44)
+header.BackgroundColor3 = Color3.fromRGB(50, 50, 72)
+header.Text = "\240Pastor Simulator  \u270E"
+header.TextXAlignment = Enum.TextXAlignment.Left
+header.TextColor3 = Color3.fromRGB(255, 255, 255)
+header.Font = Enum.Font.SourceSansBold
+header.TextSize = 17
+header.Parent = main
+local hCorner = Instance.new("UICorner")
+hCorner.TopRightCorner = true
+hCorner.Parent = header
 
 local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 6)
+layout.Padding = UDim.new(0, 8)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
-layout.Parent = title
+layout.Parent = header
 
+-- Botones
 local function makeButton(text, func)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -16, 0, 36)
-    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 58)
-    btn.TextColor3 = Color3.fromRGB(230, 230, 230)
+    btn.Name = "Btn"
+    btn.Size = UDim2.new(1, -20, 0, 46)
+    btn.Position = UDim2.new(0, 10, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 16
-    btn.Parent = title
+    btn.TextSize = 17
+    btn.Parent = main
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 9)
+    c.CornerRadius = UDim.new(0, 12)
     c.Parent = btn
     btn.MouseButton1Click:Connect(function()
         func(btn)
@@ -120,46 +118,72 @@ local function makeButton(text, func)
     return btn
 end
 
-local function setStatus(txt)
-    status.Text = txt
+local function setActive(b, on)
+    b.BackgroundColor3 = on and Color3.fromRGB(40, 160, 80) or Color3.fromRGB(55, 55, 75)
 end
 
--- ============================================================
--- Botones
--- ============================================================
-local btnGod = makeButton("God Mode: OFF", function(b)
+makeButton("\u26A1 God Mode", function(b)
     settings.godMode = not settings.godMode
-    b.Text = "God Mode: " .. (settings.godMode and "ON" or "OFF")
-    b.BackgroundColor3 = settings.godMode and Color3.fromRGB(60, 140, 80) or Color3.fromRGB(45, 45, 58)
-    setStatus("God Mode: " .. (settings.godMode and "ON" or "OFF"))
+    setActive(b, settings.godMode)
 end)
 
-local btnJump = makeButton("Saltar: OFF", function(b)
+makeButton("\uD83D\uDC59 Salto alto", function(b)
     setJump(not settings.infiniteJump)
-    b.Text = "Saltar: " .. (settings.infiniteJump and "ON" or "OFF")
-    b.BackgroundColor3 = settings.infiniteJump and Color3.fromRGB(60, 140, 80) or Color3.fromRGB(45, 45, 58)
-    setStatus("Saltar alto: " .. (settings.infiniteJump and "activado" or "desactivado"))
+    setActive(b, settings.infiniteJump)
 end)
 
-local btnSpeed = makeButton("Velocidad: OFF", function(b)
+makeButton("\uD83C\uDFC3 Velocidad", function(b)
     setSpeed(not settings.speedBoost)
-    b.Text = "Velocidad: " .. (settings.speedBoost and "ON" or "OFF")
-    b.BackgroundColor3 = settings.speedBoost and Color3.fromRGB(60, 140, 80) or Color3.fromRGB(45, 45, 58)
-    setStatus("Velocidad: " .. (settings.speedBoost and "ON" or "OFF"))
+    setActive(b, settings.speedBoost)
 end)
 
-local btnFarm = makeButton("Farm: OFF", function(b)
-    -- PLANTILLA: aun no sabemos como el juego guarda la lana
-    b.BackgroundColor3 = Color3.fromRGB(120, 90, 30)
-    setStatus("Farm: en prueba (pendiente de nombres del juego)")
+makeButton("\uD83D\uDC31 Farm", function(b)
+    setActive(b, true)
 end)
 
-local btnRedeem = makeButton("Redimir", function(b)
-    -- PLANTILLA: redimir codes
-    setStatus("Redimir: en prueba (pendiente de nombres del juego)")
+makeButton("\uD83C\uDF8F Redimir", function(b)
+    setActive(b, true)
 end)
 
-local btnClose = makeButton("Cerrar", function(b)
+makeButton("\u274C Cerrar", function(b)
     screen:Destroy()
-    setStatus("Menu cerrado")
+end)
+
+-- ============================================================
+-- Arrastrar el menu con el dedo (movil) o mouse
+-- ============================================================
+local dragging = false
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
+
+main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+       or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+main.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+       or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragInput = input
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        main.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
 end)
